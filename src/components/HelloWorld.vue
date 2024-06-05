@@ -6,88 +6,68 @@
     支持10w+直播间具体人数查询
   </a-typography-title>
   <div class="main">
-
     <a-form :model="form" layout="vertical" @submit="handleSubmit">
       <a-form-item field="name" label="主播昵称" tooltip="要保证第一个搜到的是他">
-        <a-input
-            v-model="form.nickname"
-            placeholder=""
-        />
+        <a-input v-model="form.keyword" placeholder="" />
       </a-form-item>
       <a-form-item disabled field="post" label="主播id">
-        <a-input v-model="form.web_rid" placeholder="暂不支持"/>
+        <a-input v-model="form.web_rid" placeholder="暂不支持" />
       </a-form-item>
-
       <a-form-item>
         <a-button html-type="submit">查询</a-button>
       </a-form-item>
     </a-form>
-    <a-card :loading="card_data.is_load">
-      <template #actions>
-        <span class="icon-hover" @click="gotoDouyin"> <IconTiktokColor/> </span>
-        <span class="icon-hover" @click="share"> <IconShareInternal/> </span>
-        <!--        <span class="icon-hover"> <IconMore/> </span>-->
-      </template>
-      <a-card-meta :description="'在线观众 : '+card_data.display_value"
-                   :title="card_data.title">
-        <template #avatar>
-          <div
-              :style="{ display: 'flex', alignItems: 'center', color: '#1D2129' }"
-          >
-            <a-avatar v-show="card_data.display_value!==0" :size="60" :style="{ marginRight: '8px' }">
-              <img
-                  :src="card_data.avatar"
-                  :style="{ width: '100%' }"
-                  alt="dessert"
-              />
-            </a-avatar>
-
-            <a-typography-text>{{ card_data.nickname }}</a-typography-text>
-          </div>
+    <div v-if="card_data.is_load" class="loading-spinner">加载中...</div>
+    <div v-else>
+      <a-card v-for="(data, index) in card_data.list" :key="index" :loading="card_data.is_load">
+        <template #actions>
+          <span class="icon-hover" @click="gotoDouyin(data.web_rid)"> <IconTiktokColor/> </span>
+          <span class="icon-hover" @click="share(data)"> <IconShareInternal/> </span>
         </template>
-      </a-card-meta>
-    </a-card>
-
-    <!--    <a-typography-title :heading="3" style="text-align: center">-->
-    <!--      相关主播-->
-    <!--    </a-typography-title>-->
+        <a-card-meta :description="'在线观众 : '+data.display_value" :title="data.title">
+          <template #avatar>
+            <div :style="{ display: 'flex', alignItems: 'center', color: '#1D2129' }">
+              <a-avatar v-show="data.display_value!==0" :size="60" :style="{ marginRight: '8px' }">
+                <img :src="data.avatar" :style="{ width: '100%' }" alt="avatar" />
+              </a-avatar>
+              <a-typography-text>{{ data.nickname }}</a-typography-text>
+            </div>
+          </template>
+        </a-card-meta>
+      </a-card>
+    </div>
   </div>
 </template>
 
 <script setup>
-import {IconShareInternal, IconTiktokColor} from '@arco-design/web-vue/es/icon';
-import {getCurrentInstance, reactive} from "vue";
+import { IconShareInternal, IconTiktokColor } from '@arco-design/web-vue/es/icon';
+import { getCurrentInstance, reactive } from 'vue';
 import axios from 'axios';
 
-let $message = getCurrentInstance().appContext.config.globalProperties.$message
-
+let $message = getCurrentInstance().appContext.config.globalProperties.$message;
 
 const form = reactive({
-  nickname: '',
+  keyword: '',
   web_rid: '',
   isRead: false,
 });
 
 const card_data = reactive({
-  "avatar": "",
-  "display_value": 0,
-  "nickname": "",
-  "title": "",
-  "web_rid": "",
-  "is_load": false
+  list: [],
+  is_load: false
 });
 
 const handleSubmit = async () => {
-  console.log('click')
   try {
     card_data.is_load = true;
-    const response = await axios.post(import.meta.env.VITE_BASE_URL, form);
-    console.log(response.data); // 如果需要处理返回的数据，请将其打印出来或按需处理
-    card_data.avatar = response.data.avatar;
-    card_data.display_value = response.data.display_value;
-    card_data.nickname = response.data.nickname;
-    card_data.title = response.data.title;
-    card_data.web_rid = response.data.web_rid;
+    const response = await axios.get(import.meta.env.VITE_BASE_URL +"?keyword="+ form.keyword);
+    card_data.list = response.data.map(item => ({
+      avatar: item.avatar,
+      display_value: item.display_value,
+      nickname: item.nickname,
+      title: item.title,
+      web_rid: item.web_rid,
+    }));
   } catch (error) {
     console.error('Error:', error);
   } finally {
@@ -95,15 +75,12 @@ const handleSubmit = async () => {
   }
 };
 
-const gotoDouyin = () => {
-  window.open(`https://live.douyin.com/${card_data.web_rid}`);
+const gotoDouyin = (web_rid) => {
+  window.open(`https://live.douyin.com/${web_rid}`);
 };
 
-//
-const share = () => {
-  // $message.success('分享信息已复制到剪贴板');
-  //把title,nickname,在线观众数量，直播间网址复制到剪贴板
-  const text = `我正在看: ${card_data.nickname} \n在线观众：${card_data.display_value}\n 直播间网址：https://live.douyin.com/${card_data.web_rid}`;
+const share = (data) => {
+  const text = `我正在看: ${data.nickname} \n在线观众：${data.display_value}\n 直播间网址：https://live.douyin.com/${data.web_rid}`;
   const input = document.createElement('input');
   input.setAttribute('readonly', 'readonly');
   input.value = text;
@@ -117,10 +94,14 @@ const share = () => {
   }
   document.body.removeChild(input);
 };
-
 </script>
+
 <style>
 .arco-form-item-content-flex {
   justify-content: flex-end;
+}
+.loading-spinner {
+  text-align: center;
+  margin: 20px 0;
 }
 </style>
