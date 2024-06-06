@@ -14,12 +14,11 @@
         <a-input v-model="form.web_rid" placeholder="暂不支持" />
       </a-form-item>
       <a-form-item>
-        <a-button html-type="submit">查询</a-button>
+        <a-button html-type="submit" :loading="card_data.is_load">查询</a-button>
       </a-form-item>
     </a-form>
-    <div v-if="card_data.is_load" class="loading-spinner">加载中...</div>
-    <div v-else>
-      <a-card v-for="(data, index) in card_data.list" :key="index" :loading="card_data.is_load">
+    <div>
+      <a-card v-for="(data, index) in card_data.list" :key="index">
         <template #actions>
           <span class="icon-hover" @click="gotoDouyin(data.web_rid)"> <IconTiktokColor/> </span>
           <span class="icon-hover" @click="share(data)"> <IconShareInternal/> </span>
@@ -96,12 +95,3 @@ const share = (data) => {
 };
 </script>
 
-<style>
-.arco-form-item-content-flex {
-  justify-content: flex-end;
-}
-.loading-spinner {
-  text-align: center;
-  margin: 20px 0;
-}
-</style>
